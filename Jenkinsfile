@@ -1,21 +1,27 @@
-// Runs automatically after this job has executed once and Jenkins
-// is polling GitHub. A new commit on the watched branch starts:
-// checkout -> docker build -> confirm the Todo API answers.
+// Future pushes to main start this pipeline on their own.
 //
-// One-time Jenkins job setup (Pipeline script from SCM):
+// Jenkins job (create once, Pipeline script from SCM):
 //   Repository URL: https://github.com/tummurubhuvana/todo-app
 //   Branch: */main
 //   Script Path: Jenkinsfile
-// Then click Build Now once so Jenkins loads the poll trigger below.
+// Click Build Now once so Jenkins saves the triggers below.
+//
+// For an immediate start on each push, add a GitHub webhook:
+//   Payload URL: http://<your-jenkins-host>/github-webhook/
+//   Content type: application/json
+//   Event: Just the push event
 pipeline {
     agent any
 
     environment {
         IMAGE_NAME = 'tummurubhuvana/todo-api'
+        REPO_URL = 'https://github.com/tummurubhuvana/todo-app.git'
     }
 
     triggers {
-        // About every 2 minutes, build only when GitHub has new commits.
+        // GitHub webhook: build as soon as a commit is pushed.
+        githubPush()
+        // Backup: if the webhook is not set up yet, detect new commits anyway.
         pollSCM('H/2 * * * *')
     }
 
@@ -29,8 +35,12 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo 'Getting Todo application code from GitHub'
-                checkout scm
+                echo 'Getting the latest Todo application code from GitHub'
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[url: "${REPO_URL}"]]
+                ])
             }
         }
 
