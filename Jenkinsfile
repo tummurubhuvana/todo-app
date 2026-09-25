@@ -44,6 +44,18 @@ pipeline {
             }
         }
 
+        stage('Unit Tests') {
+            steps {
+                echo 'Running unit tests'
+
+                sh '''
+                    python3 -m venv .venv
+                    .venv/bin/pip install -r requirement.txt pytest httpx
+                    .venv/bin/pytest test_main.py -v
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image from the Dockerfile'
